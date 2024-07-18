@@ -25,6 +25,11 @@ pub struct CaptchaOption {
     captcha_type: CaptchaType,
 }
 
+#[derive(Debug)]
+struct awe {
+    
+}
+
 #[derive(Debug, Clone, ValueEnum)]
 pub enum CaptchaType {
     Rotate,

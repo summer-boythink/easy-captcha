@@ -8,7 +8,7 @@ use serde_json::json;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let images: Vec<String> = fs::read_dir("/root/rs_code/easy-capture/example/test_img")
+    let images: Vec<String> = fs::read_dir("example/test_img")
         .unwrap()
         .filter_map(|entry| {
             let path = entry.unwrap().path();
@@ -22,14 +22,14 @@ async fn main() -> std::io::Result<()> {
 
     let cli = CaptchaOption::new(images, 250, 250, 30.0, CaptchaType::Rotate);
 
-    let app_state = RotateAppState::new(cli, ImageFormat::Jpeg);
+    let app_state = RotateAppState::new(cli, ImageFormat::Png);
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .route("/generate", web::get().to(generate_captcha))
             .route("/check", web::post().to(check_captcha))
-            .route("/show",  web::get().to(show))
+            .route("/show", web::get().to(show))
     })
     .bind("0.0.0.0:9666")?
     .run()
@@ -49,7 +49,7 @@ struct CaptchaResponse {
 }
 
 async fn generate_captcha(data: web::Data<RotateAppState>) -> impl Responder {
-    let base64_image = data.generate_captcha();
+    let base64_image = data.generate_captcha().unwrap();
     let hash_key = data
         .check_map
         .lock()
@@ -58,6 +58,7 @@ async fn generate_captcha(data: web::Data<RotateAppState>) -> impl Responder {
         .last()
         .unwrap()
         .clone();
+    // HttpResponse::Ok().body(base64_image)
     HttpResponse::Ok().json(CaptchaResponse {
         base64_image,
         hash_key,
@@ -75,7 +76,7 @@ async fn check_captcha(
     }))
 }
 
-async fn show(data: web::Data<RotateAppState>)-> impl Responder{
+async fn show(data: web::Data<RotateAppState>) -> impl Responder {
     let check_map = data.check_map.lock().unwrap();
     let map_copy: HashMap<String, (f32, f32)> = check_map.clone();
     drop(check_map); // 释放锁
